@@ -85,11 +85,30 @@ class Pub():
 				return root
 		raise Exception("The instance did not return the audio list.")
 
-	def load_audios(self, instance):
+	def fetch_page(self, page):
+		path="/__data.json" if page<=1 else f"/__data.json?page={page}"
+		return self.extract_front_page(self.get_json(path))
+
+	def connect(self, instance):
 		self.instance=self.normalize(instance)
-		front_page=self.extract_front_page(self.get_json("/__data.json"))
-		self.audio_list=front_page.get("audios") or []
-		self.stream_list=front_page.get("streams") or []
+		self.first_page=self.fetch_page(1)
+		self.total_pages=max(1, int(self.first_page.get("totalPages") or 1))
+		return self.total_pages
+
+	def load_audios(self, pages=1):
+		pages=max(1, min(int(pages), self.total_pages))
+		self.stream_list=self.first_page.get("streams") or []
+		self.audio_list=[]
+		seen=set()
+		for page in range(1, pages+1):
+			front_page=self.first_page if page==1 else self.fetch_page(page)
+			for audio in front_page.get("audios") or []:
+				audio_id=audio.get("id")
+				if audio_id is not None:
+					if audio_id in seen:
+						continue
+					seen.add(audio_id)
+				self.audio_list.append(audio)
 		self.items=[("stream", stream) for stream in self.stream_list]+[("audio", audio) for audio in self.audio_list]
 		self.texts=[self.format_stream(stream) for stream in self.stream_list]+[self.format_audio(audio) for audio in self.audio_list]
 
