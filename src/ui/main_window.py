@@ -22,7 +22,7 @@ class Window(wx.Frame):
 		text=self.list_box.GetStringSelection()
 		if not text:
 			return
-		index=m.texts.index(text)
+		index=self.list_box.GetSelection()
 		entry=m.items[index]
 		kind=entry[0]
 		element=entry[1]
